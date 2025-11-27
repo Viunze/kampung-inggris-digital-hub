@@ -92,7 +92,7 @@ export interface KosHomestay {
   name: string;
   description: string;
   address: string;
-  price: number; // Harga per bulan/malam
+ pricePerMonth?: number; // Harga per bulan, dibuat opsional
   photos?: string[]; // Array of image URLs
   type: 'kos' | 'homestay'; // Tipe properti
   facilities: string[]; // Contoh: ['AC', 'WiFi', 'Kamar Mandi Dalam']
