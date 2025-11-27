@@ -34,9 +34,9 @@ export interface CourseInstitution {
   category: string[]; // Contoh: ["Bahasa Inggris", "TOEFL", "IELTS"]
   photos?: string[];
   programs: string[];
-  rating?: number;       // Rata-rata rating (opsional, bisa 0-5)
+  rating?: number;        // Rata-rata rating (opsional, bisa 0-5)
   reviewCount?: number;
-  cost?: number;
+  cost?: number; // Biaya kursus
   createdAt: string; // ISO string date
   updatedAt: string; // ISO string date
 }
@@ -85,6 +85,26 @@ export interface Reply {
 }
 
 // =============================================================================
+// Kos/Homestay Models (BARU DITAMBAHKAN)
+// =============================================================================
+export interface KosHomestay {
+  id: string;
+  name: string;
+  description: string;
+  address: string;
+  price: number; // Harga per bulan/malam
+  photos?: string[]; // Array of image URLs
+  type: 'kos' | 'homestay'; // Tipe properti
+  facilities: string[]; // Contoh: ['AC', 'WiFi', 'Kamar Mandi Dalam']
+  contactPhone: string;
+  contactEmail?: string;
+  averageRating?: number;
+  reviewsCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// =============================================================================
 // Common Utility Types (Jika diperlukan)
 // =============================================================================
 // Contoh: Untuk status loading/error
@@ -100,11 +120,11 @@ export interface ErrorResponse {
 // Tambahan: Contoh Tipe untuk Data Lain
 // =============================================================================
 // export interface Event {
-//   id: string;
-//   title: string;
-//   date: string; // ISO string date
-//   location: string;
-//   description: string;
-//   imageUrl?: string;
-//   organizerId: string;
+//    id: string;
+//    title: string;
+//    date: string; // ISO string date
+//    location: string;
+//    description: string;
+//    imageUrl?: string;
+//    organizerId: string;
 // }
