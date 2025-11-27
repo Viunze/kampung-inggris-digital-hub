@@ -6,6 +6,17 @@ import Card from '@/components/UI/Card';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
 import { Location } from '@/types/models';
 import Link from 'next/link';
+import dynamic from 'next/dynamic'; // Import dynamic for client-side rendering
+
+// Dynamic import for the map component
+// This ensures Leaflet (which manipulates DOM directly) is only loaded on the client-side
+const InteractiveMap = dynamic(
+  () => import('@/components/Map/InteractiveMap'),
+  {
+    ssr: false, // Disable server-side rendering for this component
+    loading: () => <p className="text-center text-gray-600">Memuat peta...</p>,
+  }
+);
 
 const LocationCard: React.FC<{ location: Location }> = ({ location }) => (
   <Card className="p-5 flex flex-col space-y-3 hover:shadow-jawa-deep transition-shadow duration-300">
@@ -25,6 +36,11 @@ const LocationCard: React.FC<{ location: Location }> = ({ location }) => (
         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         Lihat di Google Maps
       </a>
+    )}
+    {(location.latitude && location.longitude) && (
+      <p className="text-xs text-gray-400 mt-1">
+        Lat: {location.latitude}, Lng: {location.longitude}
+      </p>
     )}
   </Card>
 );
@@ -59,6 +75,16 @@ const LocationsPage: React.FC = () => {
     return filtered;
   }, [locations, searchTerm, selectedCategory]);
 
+  // Default center for Pare (approximate)
+  const defaultCenter: [number, number] = [-7.7478, 112.2034]; // Alun-alun Pare
+  const defaultZoom = 13;
+
+  // Filter locations that have valid latitude and longitude for the map
+  const locationsWithCoords = useMemo(() => {
+    return filteredLocations.filter(loc => loc.latitude !== undefined && loc.longitude !== undefined);
+  }, [filteredLocations]);
+
+
   return (
     <MainLayout title="Lokasi Penting">
       <div className="flex items-center justify-between mb-8">
@@ -69,6 +95,23 @@ const LocationsPage: React.FC = () => {
         Temukan berbagai lokasi penting dan fasilitas umum di sekitar Pare.
       </p>
 
+      {/* Map Section */}
+      <div className="w-full bg-white rounded-xl shadow-jawa-soft p-4 mb-8">
+        <h2 className="text-2xl font-bold text-java-brown-dark mb-4">Peta Lokasi</h2>
+        {typeof window !== 'undefined' && locationsWithCoords.length > 0 ? (
+          <InteractiveMap
+            center={defaultCenter}
+            zoom={defaultZoom}
+            locations={locationsWithCoords}
+          />
+        ) : (
+          <p className="text-center text-gray-600 h-96 flex items-center justify-center">
+            {locationsWithCoords.length === 0 ? "Tidak ada lokasi dengan koordinat yang tersedia untuk ditampilkan di peta." : "Memuat peta..."}
+          </p>
+        )}
+      </div>
+
+      {/* Filter & Search Section */}
       <div className="bg-white rounded-xl shadow-jawa-soft p-6 mb-8 flex flex-col md:flex-row gap-4 items-center">
         {/* Search Input */}
         <input
