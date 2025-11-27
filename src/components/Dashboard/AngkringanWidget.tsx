@@ -2,6 +2,9 @@
 
 import React from 'react';
 import Card from '../UI/Card';
+import { useFirestoreData } from '@/hooks/useFirestoreData'; // Impor hook
+import { ForumPost } from '@/types/models'; // Impor tipe ForumPost
+import { limit, orderBy } from 'firebase/firestore'; // Impor QueryConstraint
 
 // Ikon Lonceng/Notifikasi (Anda bisa mengganti dengan SVG kustom)
 const BellIcon = () => (
@@ -22,11 +25,16 @@ const BellIcon = () => (
 );
 
 interface AngkringanWidgetProps {
-  messages: { author: string; content: string }[];
   onClick?: () => void;
 }
 
-const AngkringanWidget: React.FC<AngkringanWidgetProps> = ({ messages, onClick }) => {
+const AngkringanWidget: React.FC<AngkringanWidgetProps> = ({ onClick }) => {
+  // Gunakan useFirestoreData untuk mengambil 3 postingan forum terbaru
+  const { data: messages, loading, error } = useFirestoreData<ForumPost>(
+    'forumPosts',
+    [orderBy('timestamp', 'desc'), limit(3)]
+  );
+
   return (
     <Card className="flex flex-col space-y-4 bg-java-orange/10 border border-java-orange/30 cursor-pointer hover:bg-java-orange/20" onClick={onClick}>
       <div className="flex items-center justify-between">
@@ -34,15 +42,17 @@ const AngkringanWidget: React.FC<AngkringanWidgetProps> = ({ messages, onClick }
         <BellIcon />
       </div>
       <div className="space-y-3">
-        {messages.length > 0 ? (
-          messages.map((msg, index) => (
-            <div key={index} className="bg-white p-3 rounded-lg shadow-sm text-sm border-l-4 border-java-gold">
-              <p className="font-semibold text-java-brown-dark">{msg.author}:</p>
+        {loading && <p className="text-gray-500 text-sm">Memuat pesan...</p>}
+        {error && <p className="text-red-500 text-sm">Error: {error}</p>}
+        {!loading && !error && messages.length > 0 ? (
+          messages.map((msg) => (
+            <div key={msg.id} className="bg-white p-3 rounded-lg shadow-sm text-sm border-l-4 border-java-gold">
+              <p className="font-semibold text-java-brown-dark">{msg.authorName}:</p>
               <p className="text-gray-700">{msg.content}</p>
             </div>
           ))
         ) : (
-          <p className="text-gray-500 text-sm">Belum ada aktivitas di Angkringan.</p>
+          !loading && !error && <p className="text-gray-500 text-sm">Belum ada aktivitas di Angkringan.</p>
         )}
       </div>
     </Card>
