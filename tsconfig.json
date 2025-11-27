@@ -1,7 +1,5 @@
-// tsconfig.json
 {
   "compilerOptions": {
-    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -9,10 +7,12 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler", // Rekomendasi untuk Next.js 13+
+    // 💡 Perbaikan 1: Mengubah moduleResolution ke "node" (disarankan ChatGPT)
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    // 💡 Perbaikan 2: Mengubah jsx ke "react-jsx"
+    "jsx": "react-jsx", 
     "incremental": true,
     "plugins": [
       {
@@ -20,9 +20,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"] // Ini harus sesuai dengan struktur folder Anda (misal: semua kode di dalam 'src')
+      "@/*": ["./src/*"]
     },
-    "baseUrl": "." // Penting untuk path alias seperti @/
+    "baseUrl": "."
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
