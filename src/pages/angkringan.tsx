@@ -1,12 +1,13 @@
 // src/pages/angkringan.tsx
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link'; // Import Link
 import MainLayout from '@/components/Layout/MainLayout';
 import Card from '@/components/UI/Card';
 import { useAuth } from '@/hooks/useAuth';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
 import { ForumPost } from '@/types/models';
-import { addDocument } from '@/lib/firestore'; // Import addDocument
+import { addDocument, updateDocument } from '@/lib/firestore'; // Import addDocument dan updateDocument
 import { orderBy, query } from 'firebase/firestore'; // Untuk query
 
 const AngkringanPage: React.FC = () => {
@@ -35,23 +36,55 @@ const AngkringanPage: React.FC = () => {
     setPostError(null);
 
     try {
-      // Pastikan `timestamp` adalah Date objek, `addDocument` akan mengonversinya ke Firestore Timestamp
       const newPost: Omit<ForumPost, 'id' | 'timestamp' | 'createdAt' | 'updatedAt'> = {
         authorId: user.uid,
         authorName: user.displayName || user.email || 'Anonim',
         content: newPostContent.trim(),
         repliesCount: 0,
         likesCount: 0,
+        likedBy: [], // Inisialisasi array likedBy
       };
       // Explicitly set timestamp here to be used by orderBy in the hook,
       // and serverTimestamp in addDocument will handle the actual server-side timestamp.
-      await addDocument<ForumPost>('forumPosts', { ...newPost, timestamp: new Date() as any }); // Cast Date to any to match Firestore Timestamp expected by `ForumPost` interface, as `addDocument` will overwrite with serverTimestamp
+      await addDocument<ForumPost>('forumPosts', { ...newPost, timestamp: new Date() as any });
       setNewPostContent('');
     } catch (err: any) {
       console.error("Error adding forum post:", err);
       setPostError(err.message || 'Gagal membuat postingan.');
     } finally {
       setSubmittingPost(false);
+    }
+  };
+
+  const handleLikePost = async (post: ForumPost) => {
+    if (!user) {
+      alert('Anda harus login untuk menyukai postingan.');
+      return;
+    }
+
+    try {
+      let newLikesCount = post.likesCount || 0;
+      let newLikedBy = post.likedBy || [];
+      const userHasLiked = newLikedBy.includes(user.uid);
+
+      if (userHasLiked) {
+        // Unlike: Hapus UID user dari array dan kurangi count
+        newLikesCount = Math.max(0, newLikesCount - 1); // Tidak boleh kurang dari 0
+        newLikedBy = newLikedBy.filter(uid => uid !== user.uid);
+      } else {
+        // Like: Tambahkan UID user ke array dan tambahkan count
+        newLikesCount += 1;
+        newLikedBy = [...newLikedBy, user.uid];
+      }
+
+      // Update dokumen di Firestore
+      await updateDocument<ForumPost>('forumPosts', post.id, {
+        likesCount: newLikesCount,
+        likedBy: newLikedBy,
+      });
+    } catch (err) {
+      console.error("Error liking post:", err);
+      alert('Gagal menyukai/tidak menyukai postingan.');
     }
   };
 
@@ -129,18 +162,39 @@ const AngkringanPage: React.FC = () => {
                 </div>
                 <p className="text-gray-800 leading-relaxed">{post.content}</p>
                 <div className="flex items-center text-sm text-gray-600 space-x-4 pt-2 border-t border-gray-100">
-                  <button className="flex items-center hover:text-java-green-dark transition-colors">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                  <button
+                    onClick={() => handleLikePost(post)} // Panggil handler like
+                    className={`flex items-center transition-colors ${
+                      user && post.likedBy && post.likedBy.includes(user.uid)
+                        ? 'text-red-500' // Jika user sudah like, warna merah
+                        : 'hover:text-java-green-dark' // Default hover
+                    }`}
+                    disabled={!user || authLoading} // Nonaktifkan jika belum login atau sedang loading auth
+                  >
+                    <svg
+                      className={`w-4 h-4 mr-1 ${
+                        user && post.likedBy && post.likedBy.includes(user.uid) ? 'fill-current' : 'fill-none'
+                      }`}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      ></path>
+                    </svg>
                     <span>{post.likesCount || 0} Suka</span>
                   </button>
-                  <Link href={`/angkringan/${post.id}`} legacyBehavior> {/* TAMBAHKAN LINK INI */}
+                  <Link href={`/angkringan/${post.id}`} legacyBehavior>
                     <a className="flex items-center hover:text-java-green-dark transition-colors">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.003 9.003 0 01-4.878-1.333M12 3c4.418 0 8 4.03 8 9s-3.582 9-8 9-9-4.03-9-9 4.03-9 9-9z"></path></svg>
                       <span>{post.repliesCount || 0} Balasan</span>
                     </a>
                   </Link>
                   <Link href={`/angkringan/${post.id}`} legacyBehavior>
-                    <a className="ml-auto text-java-green-dark hover:underline">Lihat Detail</a> {/* TAMBAHKAN LINK INI JUGA */}
+                    <a className="ml-auto text-java-green-dark hover:underline">Lihat Detail</a>
                   </Link>
                 </div>
               </Card>
