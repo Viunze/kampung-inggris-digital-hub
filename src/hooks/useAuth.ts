@@ -1,6 +1,6 @@
 // src/hooks/useAuth.ts
 
-import React, { useState, useEffect, useContext, createContext } from 'react';
+import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
 import {
   getAuth,
   onAuthStateChanged,
@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // AuthProvider adalah komponen yang akan membungkus bagian dari aplikasi Anda
 // yang membutuhkan akses ke konteks autentikasi.
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) { // Menggunakan ReactNode di sini
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
