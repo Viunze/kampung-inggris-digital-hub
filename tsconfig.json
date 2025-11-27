@@ -7,11 +7,11 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    // 💡 Perbaikan 1: Mengubah moduleResolution ke "node" (disarankan ChatGPT)
-    "moduleResolution": "node",
+    // ✅ Mengunci Module Resolution
+    "moduleResolution": "node", 
     "resolveJsonModule": true,
     "isolatedModules": true,
-    // 💡 Perbaikan 2: Mengubah jsx ke "react-jsx"
+    // ✅ Mengunci JSX
     "jsx": "react-jsx", 
     "incremental": true,
     "plugins": [
