@@ -26,8 +26,8 @@ interface AuthContextType {
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
 }
 
-// ✅ PERBAIKAN: Mengganti nama AuthContext menjadi AuthCtx untuk menghindari konflik namespace di Vercel
-const AuthCtx = createContext<AuthContextType | undefined>(undefined);
+// ✅ KEMBALI KE NAMA ASLI: AuthContext
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // AuthProvider adalah komponen utama yang menyediakan konteks autentikasi.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -41,12 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
       setLoading(false);
     });
-
-    // Membersihkan subscription
     return () => unsubscribe();
   }, []);
 
-  // Fungsi untuk login
+  // [Fungsi login, register, logout, resetPassword, updateUserProfile, dst. tetap sama]
   const login = async (credentials: AuthCredentials) => {
     setLoading(true);
     setError(null);
@@ -61,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fungsi untuk registrasi
   const register = async (credentials: AuthCredentials, displayName: string) => {
     setLoading(true);
     setError(null);
@@ -69,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
-        // Perbarui state user lokal
         setUser({ 
           ...userCredential.user, 
           displayName, 
@@ -85,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fungsi untuk logout
   const logout = async () => {
     setLoading(true);
     setError(null);
@@ -100,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fungsi untuk reset password
   const resetPassword = async (email: string) => {
     setLoading(true);
     setError(null);
@@ -115,16 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fungsi untuk memperbarui profil pengguna
   const updateUserProfile = async (displayName: string, photoURL?: string) => {
     setLoading(true);
     setError(null);
     try {
       if (auth.currentUser) {
-        // Perbarui profil di Firebase Auth
         await updateProfile(auth.currentUser, { displayName, photoURL });
-
-        // Perbarui state user lokal
         setUser({ 
           ...auth.currentUser, 
           displayName, 
@@ -142,25 +132,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Nilai yang akan disediakan oleh konteks
   const value: AuthContextType = {
-    user,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    resetPassword,
-    updateUserProfile,
+    user, loading, error, login, register, logout, resetPassword, updateUserProfile,
   };
 
-  // Menggunakan AuthCtx.Provider
-  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
+  // ✅ SOLUSI WRAPPER: Menggunakan Wrapper Komponen dengan nama AuthContext yang benar
+  // Ini menghindari Vercel build environment salah menginterpretasikan AuthContext sebagai namespace
+  const ProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+    // Menggunakan AuthContext.Provider di dalam komponen Wrapper
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  };
+
+  // Mengembalikan wrapper
+  return <ProviderWrapper>{children}</ProviderWrapper>;
 }
 
-// useAuth hook untuk mengonsumsi nilai dari AuthContext (sekarang AuthCtx)
+// useAuth hook untuk mengonsumsi nilai dari AuthContext
 export const useAuth = () => {
-  const context = useContext(AuthCtx); // Menggunakan AuthCtx
+  const context = useContext(AuthContext); // Menggunakan AuthContext
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
