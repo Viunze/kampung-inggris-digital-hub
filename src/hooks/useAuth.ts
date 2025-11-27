@@ -1,30 +1,25 @@
 // src/hooks/useAuth.ts
 
-import { useState, useEffect, useContext, createContext } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
+  User,
   onAuthStateChanged,
-  User as FirebaseUser,
   signInWithEmailAndPassword,
-  signOut,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
-  // ... tambahkan provider lain jika diperlukan (FacebookAuthProvider, dll.)
+  signOut,
+  updateProfile, // Tambahkan ini
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Mengambil instance auth dari firebase.ts
-import { User } from '@/types/models'; // Menggunakan tipe User dari models.d.ts
-import { useRouter } from 'next/router';
+import { auth } from '@/lib/firebase';
+import { AuthCredentials } from '@/types/auth'; // Pastikan path ini benar
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  login: (credentials: AuthCredentials) => Promise<void>;
+  register: (credentials: AuthCredentials) => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  updateUserProfile: (displayName?: string, photoURL?: string) => Promise<void>; // Tambahkan ini
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,94 +28,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        // Map FirebaseUser ke tipe User kustom kita
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          // Tambahkan data kustom lain jika disimpan di Firestore/database
-        });
-      } else {
-        setUser(null);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
+      setError(null); // Reset error on auth state change
     });
-
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup subscription
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    setError(null);
+  const login = async (credentials: AuthCredentials) => {
     setLoading(true);
+    setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // User state akan diupdate oleh onAuthStateChanged listener
-      router.push('/dashboard'); // Arahkan ke dashboard setelah login
+      await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message);
+      throw err; // Re-throw error for component to handle
     } finally {
       setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, displayName?: string) => {
-    setError(null);
+  const register = async (credentials: AuthCredentials) => {
     setLoading(true);
+    setError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if (displayName && userCredential.user) {
-        // Update display name jika disediakan
-        // await updateProfile(userCredential.user, { displayName }); // Perlu import updateProfile
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password
+      );
+      // Opsional: Langsung update display name setelah register
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: credentials.email.split('@')[0] });
+        setUser(userCredential.user); // Update local user state
       }
-      router.push('/dashboard'); // Arahkan ke dashboard setelah register
     } catch (err: any) {
+      console.error("Register error:", err);
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
   const logout = async () => {
-    setError(null);
     setLoading(true);
+    setError(null);
     try {
       await signOut(auth);
-      router.push('/auth/login'); // Arahkan ke login setelah logout
     } catch (err: any) {
+      console.error("Logout error:", err);
       setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const updateUserProfile = async (displayName?: string, photoURL?: string) => {
     setError(null);
+    if (!auth.currentUser) {
+      setError('Anda harus login untuk mengupdate profil.');
+      throw new Error('User not logged in.');
+    }
+    setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
-      alert('Link reset password telah dikirim ke email Anda!');
+      await updateProfile(auth.currentUser, { displayName, photoURL });
+      // Update state user secara manual karena onAuthStateChanged mungkin tidak langsung terpicu
+      setUser((prevUser) => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          displayName: displayName !== undefined ? displayName : prevUser.displayName,
+          photoURL: photoURL !== undefined ? photoURL : prevUser.photoURL,
+        };
+      });
+      // Tidak perlu alert di sini, biarkan komponen yang memanggil yang handle feedback
     } catch (err: any) {
       setError(err.message);
-      throw err; // Lempar error agar komponen yang memanggil bisa menanganinya
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -129,11 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     error,
-    signIn,
-    signUp,
-    signInWithGoogle,
+    login,
+    register,
     logout,
-    resetPassword,
+    updateUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
