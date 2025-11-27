@@ -1,3 +1,5 @@
+// src/hooks/useAuth.ts
+
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import {
   getAuth,
@@ -126,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUserProfile,
   };
 
+  // ✅ KEMBALI KE DIRECT RETURN: Langsung menggunakan AuthContext.Provider
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
