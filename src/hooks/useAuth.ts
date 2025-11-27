@@ -12,7 +12,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { AuthCredentials } from '@/types/auth'; // Pastikan AuthCredentials diexport
+import { AuthCredentials } from '@/types/auth'; 
 
 // Interface yang mendefinisikan bentuk nilai yang disediakan oleh AuthContext
 interface AuthContextType {
@@ -28,7 +28,6 @@ interface AuthContextType {
 
 // Membuat AuthContext.
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-// TIDAK diekspor, hanya digunakan internal.
 
 // AuthProvider adalah komponen utama yang menyediakan konteks autentikasi.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -144,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Nilai yang akan disediakan oleh konteks
-  const value: AuthContextType = { // Deklarasi tipe di sini (lebih aman)
+  const value: AuthContextType = {
     user,
     loading,
     error,
@@ -155,9 +154,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUserProfile,
   };
 
-  // ✅ PERBAIKAN KRITIS: Menghapus 'as AuthContextType'
-  // Nilai 'value' sudah memiliki tipe yang benar, tidak perlu type assertion di JSX.
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // 💡 SOLUSI WRAPPER: Komponen ini membungkus AuthContext.Provider
+  // Ini menghindari Vercel build environment salah menginterpretasikan AuthContext sebagai namespace
+  const ProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  };
+
+  // Mengembalikan wrapper
+  return <ProviderWrapper>{children}</ProviderWrapper>;
 }
 
 // useAuth hook untuk mengonsumsi nilai dari AuthContext
@@ -166,5 +170,5 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context as AuthContextType; // Type assertion di sini aman
+  return context as AuthContextType; 
 };
