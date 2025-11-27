@@ -100,6 +100,7 @@ export interface KosHomestay {
   contactEmail?: string;
   averageRating?: number;
   reviewsCount?: number;
+  isVerified?: boolean; // Status verifikasi, opsional
   createdAt: string;
   updatedAt: string;
 }
