@@ -43,7 +43,6 @@ const FacilityIcon = ({ name }: { name: string }) => {
   return iconComponent;
 };
 
-
 const KosCard: React.FC<KosCardProps> = ({ kos }) => {
   return (
     <Link href={`/kos-homestay/${kos.id}`} legacyBehavior>
@@ -71,7 +70,8 @@ const KosCard: React.FC<KosCardProps> = ({ kos }) => {
             <p className="text-sm text-gray-600 mb-1 truncate">{kos.address}</p>
             <div className="flex items-center text-sm text-gray-700 mb-2">
               <svg className="w-4 h-4 text-gray-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              <span>{kos.distanceToCenter} min dari pusat</span>
+              {/* PERBAIKAN DI SINI: tambahkan ?? 0 */}
+              <span>{(kos.distanceToCenter ?? 0)} min dari pusat</span>
             </div>
             <div className="flex flex-wrap gap-2 mb-3 mt-1">
               {kos.facilities.slice(0, 3).map((facility, index) => (
@@ -88,7 +88,8 @@ const KosCard: React.FC<KosCardProps> = ({ kos }) => {
             </div>
             <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xl font-bold text-java-green-dark">
-                Rp {kos.pricePerMonth.toLocaleString('id-ID')} / bulan
+                {/* PERBAIKAN DI SINI: tambahkan ?? 0 */}
+                Rp {(kos.pricePerMonth ?? 0).toLocaleString('id-ID')} / bulan
               </span>
               <button className="px-3 py-1 bg-java-green-light text-java-brown-dark text-sm rounded-md hover:bg-java-green-dark hover:text-white transition-colors">
                 Lihat Detail
