@@ -47,12 +47,15 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
               Program: {course.programs.join(', ')}
             </p>
             <div className="flex items-center text-sm mb-3">
-              <div className="flex mr-2">{renderStars(course.rating)}</div>
-              <span className="text-gray-700">({course.reviewCount} ulasan)</span>
+              {/* PERBAIKAN DI SINI: tambahkan ?? 0 */}
+              <div className="flex mr-2">{renderStars(course.rating ?? 0)}</div>
+              {/* PERBAIKAN DI SINI: tambahkan ?? 0 untuk reviewCount */}
+              <span className="text-gray-700">({course.reviewCount ?? 0} ulasan)</span>
             </div>
             <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xl font-bold text-java-green-dark">
-                Rp {course.cost.toLocaleString('id-ID')}
+                {/* ANTISIPASI ERROR BERIKUTNYA: tambahkan ?? 0 untuk cost */}
+                Rp {(course.cost ?? 0).toLocaleString('id-ID')}
               </span>
               <button className="px-3 py-1 bg-java-green-light text-java-brown-dark text-sm rounded-md hover:bg-java-green-dark hover:text-white transition-colors">
                 Lihat Detail
