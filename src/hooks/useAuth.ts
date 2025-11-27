@@ -1,6 +1,6 @@
 // src/hooks/useAuth.ts
 
-import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
+import React, { useState, useEffect, useContext, createContext } from 'react';
 import {
   getAuth,
   onAuthStateChanged,
@@ -11,8 +11,8 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Pastikan path ke firebase.ts benar
-import { AuthCredentials } from '@/types/auth'; // Pastikan path ke auth.ts benar, dan AuthCredentials diekspor!
+import { auth } from '@/lib/firebase';
+import { AuthCredentials } from '@/types/auth';
 
 // Interface yang mendefinisikan bentuk nilai yang disediakan oleh AuthContext
 interface AuthContextType {
@@ -26,23 +26,24 @@ interface AuthContextType {
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
 }
 
-// Membuat AuthContext. Nilai default-nya adalah 'undefined' yang akan dicek oleh useAuth hook.
+// Membuat AuthContext.
+// Kita menggunakan 'AuthContextType | undefined' karena nilai default-nya adalah undefined.
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// AuthProvider adalah komponen yang akan membungkus bagian dari aplikasi Anda
-// yang membutuhkan akses ke konteks autentikasi.
-export function AuthProvider({ children }: { children: ReactNode }) { // Menggunakan ReactNode di sini
+// AuthProvider adalah komponen utama yang menyediakan konteks autentikasi.
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Subscription ke Firebase Auth State
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
 
-    // Membersihkan subscription saat komponen unmount
+    // Membersihkan subscription
     return () => unsubscribe();
   }, []);
 
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) { // Menggun
     } catch (err: any) {
       setError(err.message);
       console.error("Login failed:", err);
-      throw err; // Lempar error agar komponen pemanggil bisa menanganinya
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -69,11 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) { // Menggun
       const userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password);
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
-        // Perbarui state user lokal, memastikan photoURL yang valid (string atau null)
+        // Perbarui state user lokal
         setUser({ 
           ...userCredential.user, 
           displayName, 
-          photoURL: userCredential.user.photoURL || null // Pastikan photoURL adalah string atau null
+          photoURL: userCredential.user.photoURL || null
         });
       }
     } catch (err: any) {
@@ -124,11 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) { // Menggun
         // Perbarui profil di Firebase Auth
         await updateProfile(auth.currentUser, { displayName, photoURL });
 
-        // Perbarui state user lokal dengan memastikan photoURL yang valid (string atau null)
+        // Perbarui state user lokal
         setUser({ 
           ...auth.currentUser, 
           displayName, 
-          photoURL: photoURL === undefined ? null : photoURL // Konversi undefined menjadi null
+          photoURL: photoURL === undefined ? null : photoURL
         });
       } else {
         throw new Error("No user is logged in to update profile.");
@@ -155,7 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) { // Menggun
   };
 
   // Mengembalikan Provider yang membungkus children
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // 💡 INI ADALAH PERBAIKAN KRUSIAL: Type Assertion 'as AuthContextType'
+  // Ini memaksa TypeScript/Babel untuk mengenali 'value' sebagai tipe yang benar saat di JSX.
+  return <AuthContext.Provider value={value as AuthContextType}>{children}</AuthContext.Provider>;
 }
 
 // useAuth hook untuk mengonsumsi nilai dari AuthContext
